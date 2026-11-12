@@ -262,6 +262,30 @@ static void kit_knobs(const char *a, const char *b, const char *c, const char *d
     cv_blit(0, 222);
 }
 
+/* while one button is held (a fifth of a second, before its card), the knob band says what it does now: the map
+ * of a held layer on the screen, so no combination has to be remembered. 1 when drawn (the app skips its knobs) */
+static int kit_hint(const char *const *hints, uint16_t accent)
+{
+    uint32_t i, now = plat_ms();
+    for (i = 0; i < NB; i++)
+        if (hints[i] && HELD(i) && now - K.bt0[i] >= 200u && K.card == NB && (K.btn & ~(1u << i)) == 0u) {
+            cv_begin(240, 18, accent);
+            cv_text(4, 2, &FONT_T, BTN_NM[i], K_BG);
+            cv_text(8 + text_w(&FONT_T, BTN_NM[i]), 2, &FONT_T, hints[i], K_BG);
+            cv_blit(0, 222);
+            return 1;
+        }
+    return 0;
+}
+static int kit_hint_due(const char *const *hints)      /* a frame should redraw for the hint to appear */
+{
+    uint32_t i, now = plat_ms();
+    for (i = 0; i < NB; i++)
+        if (hints[i] && HELD(i) && now - K.bt0[i] >= 200u && now - K.bt0[i] < 260u)
+            return 1;
+    return 0;
+}
+
 /* a value 0..max as a bar w wide (meters, levels) */
 static void bar(int32_t x, int32_t y, int32_t w, int32_t h, int32_t v, int32_t max, uint16_t c)
 {

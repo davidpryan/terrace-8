@@ -52,6 +52,10 @@ static const char *const CARD_TEXT[NB] = {
 #endif
 };
 
+static const char *const HINTS[NB] = {
+    [B_SEL] = "PRESETS: SCALE  SELECT: ROOT",
+};
+
 static void dirty(void) { U.dirty = 1; }
 static line_t *ln(void) { return &P.line[U.line % NLINE]; }
 static stage_t *stg(void) { return &P.line[U.line % NLINE].s[U.stage % NSTAGE]; }
@@ -462,6 +466,7 @@ static void draw(void)
         sgn_cat(d, ln()->acc_step);
         kit_knobs(DIR_NM[ln()->dir % NDIR], b, PDIV_NM[ln()->div % NPDIV], d, LINE_C[U.line]);
     }
+    kit_hint(HINTS, ACCENT);
 }
 
 static void lights(void)

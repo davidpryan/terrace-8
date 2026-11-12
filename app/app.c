@@ -75,6 +75,8 @@ void app_frame(void)
     for (i = 0; i < 16u; i++)
         if (heard[i])
             heard[i]--;
+    if (kit_hint_due(HINTS))
+        K.redraw = 1;
     lights();
     if (K.redraw) {
         K.redraw = 0;
