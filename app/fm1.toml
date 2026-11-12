@@ -1,0 +1,26 @@
+# TERRACE-8's build settings (fm1-base tools/build.py)
+name = "TERRACE-8"
+id_prefix = "FM-1_25"          # dev FM-1_2500, releases FM-1_25XXYYZZ
+usb_manufacturer = "TERRACE-8"
+usb_product = "TERRACE-8 FM-1"
+words = "words.tsv"
+o2 = []
+ble = true
+ble_stack = "own"
+ble_pairing = true
+ble_central = true
+usb_host = false
+usb_audio_in = false
+usb_audio_out = false
+midi_stamp = false
+emu = ["midi"]
+tagline = "stages that last: pulses, gates, ratchets, slides"
+repo = "https://github.com/davidpryan/terrace-8"
+licence = "MPL-2.0"
+credits = "Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). After the Intellijel Metropolis and the Moog 960. Fonts: Barlow (SIL OFL 1.1)."
+author = "David Ryan"
+description = "TERRACE-8 is a stage sequencer: two lines of eight stages where each stage has a pitch, a number of pulses it lasts, a gate mode (silent, once, every pulse, held, every other), ratchets, slide, accent and skip. Lines run forward, backward, ping-pong, at random or by a random walk, at their own pulse lengths, and an accumulator lifts a line through the scale each time round. Hold a stage key and the knobs are that stage. Its own synth, MIDI out over USB and Bluetooth."
+tags = ["sequencer", "synth", "midi"]
+install = "https://davidpryan.github.io/terrace-8/install/"
+site = "https://davidpryan.github.io/terrace-8/"
+screenshot = "app/docs/img/screen-stages.png"

@@ -1,0 +1,69 @@
+# TERRACE-8 in the host simulator: ./build.sh --host
+wait 600
+expect page 0
+expect line 0
+# PLAY: line A's first stage, D3 accented on channel 1
+tap PLAY
+wait 40
+expect playing 1
+expect_out USB 90 32 7A
+wait 1500
+# white key 3 is stage A3: held, K2 sets its pulses, K3 its gate mode
+key w2 down
+wait 30
+expect stage 2
+turn K2 3
+turn K3 -1
+wait 30
+key w2 up
+wait 20
+expect pulses 5
+expect gate 1
+# nothing held: K2 is the stages in play, K1 the direction
+turn K2 -2
+turn K1 2
+wait 20
+expect nstages 6
+expect dir 2
+# black keys on the stage: slide (6), skip (7), gate EVERY (3)
+tapkey b5
+tapkey b6
+tapkey b2
+wait 20
+expect slide 1
+expect skip 1
+expect gate 2
+# white key 9 is line B's first stage
+tapkey w8
+wait 20
+expect line 1
+expect stage 0
+# the accumulator on line A climbs each time round, back to 0 past its limit
+turn ALGO -1
+wait 20
+expect line 0
+tap PLAY
+wait 40
+# REC: the keys write pitches into the stages from the one shown
+tapkey w0
+tap REC
+wait 20
+expect rec 1
+tapkey 7
+wait 30
+tap REC
+wait 20
+turn ALGO 0
+tapkey w0
+wait 20
+expect deg 6
+# ARP dice, SEQ undo
+tap ARP
+wait 20
+tap SEQ
+wait 20
+expect deg 6
+press FX
+wait 1200
+expect card 0
+release FX

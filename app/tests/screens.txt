@@ -1,0 +1,12 @@
+# TERRACE-8's manual screenshots: ./build.sh --shots
+wait 600
+tap PLAY
+wait 2300
+shot screen-stages.png
+key w5 down
+wait 400
+shot screen-held.png
+key w5 up
+tap EDIT
+wait 200
+shot screen-sound.png
