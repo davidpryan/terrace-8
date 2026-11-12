@@ -16,6 +16,9 @@ static void seq_tick(void);
 static void seq_started(void);
 static void seq_stopped(void);
 static void seq_midi_note(int32_t note, uint32_t vel, uint32_t chan);
+#ifdef APP_MIX
+static void app_mix(int32_t *lr, uint32_t off, uint32_t n, float gain);
+#endif
 
 static struct {
     volatile uint8_t playing;
@@ -293,7 +296,11 @@ static void clock_render(int32_t *lr, uint32_t n, float gain)
             continue;
         }
         if (run) {
+#ifdef APP_MIX                                          /* the app's own mixer (GLOAM: lanes, sidechain, reverb) */
+            app_mix(lr, done, run, gain);
+#else
             synth_render(lr, done, run, gain);
+#endif
             done += run;
             T.now += run;
             if (T.playing && T.clk_mode == CK_INTERNAL)

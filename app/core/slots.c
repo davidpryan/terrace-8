@@ -8,9 +8,17 @@
 
 #define NSLOTS 4u
 #define SECT_USE 0xF00u
+#ifndef SLOT_SECTS
 #define SLOT_SECTS 16u
+#endif
+#ifdef APP_SLOT_BASES                                   /* the app's own places for the four (each SLOT_SECTS sectors) */
+static const uint32_t SLOT_BASES[NSLOTS] = APP_SLOT_BASES;
+#define SLOT_SECT_ADDR(slot, sect) (SLOT_BASES[(slot) % NSLOTS] + (sect) * 0x1000u)
+#else
 #define SLOT_BASE 0x98000u                              /* 0x98000 .. 0xD8000: 64 sectors, inside PLAT_DATA */
-#define SLOT_BYTES (SLOT_SECTS * SECT_USE)              /* 61,440 B */
+#define SLOT_SECT_ADDR(slot, sect) (SLOT_BASE + ((slot) * SLOT_SECTS + (sect)) * 0x1000u)
+#endif
+#define SLOT_BYTES (SLOT_SECTS * SECT_USE)              /* 61,440 B with 16 sectors */
 
 typedef struct {
     uint32_t magic, len, crc, ver;
@@ -29,7 +37,7 @@ static uint32_t crc32_step(uint32_t c, const uint8_t *p, uint32_t n)
 
 static uint32_t slot_at(uint32_t slot, uint32_t off)
 {
-    return SLOT_BASE + (slot * SLOT_SECTS + off / SECT_USE) * 0x1000u + off % SECT_USE;
+    return SLOT_SECT_ADDR(slot, off / SECT_USE) + off % SECT_USE;
 }
 
 static void slot_read(uint32_t slot, uint32_t off, void *dst, uint32_t n)
@@ -55,7 +63,7 @@ static int slot_save(uint32_t slot, uint32_t magic, uint32_t ver, const void *sr
     if (slot >= NSLOTS || len + sizeof h > SLOT_BYTES)
         return -1;
     for (sect = 0; sect * SECT_USE < len + sizeof h; sect++)
-        if (plat_data_erase(SLOT_BASE + (slot * SLOT_SECTS + sect) * 0x1000u))
+        if (plat_data_erase(SLOT_SECT_ADDR(slot, sect)))
             return -2;
     while (off < len) {                                 /* the body after the header's place */
         uint32_t at = off + sizeof h, room = SECT_USE - at % SECT_USE, k = len - off < room ? len - off : room;

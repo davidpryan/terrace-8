@@ -53,9 +53,12 @@ typedef struct {
     uint8_t wave;
     uint32_t t, noise;                                  /* drums: samples since the hit; the noise's state */
     float dpitch, ddec, dtone, dph2;
+    float pm;                                           /* the hit's own pitch factor */
 } voice_t;
 
 static voice_t V[NVOICE];
+static float screw_mul = 1.0f;                          /* every pitch times this (GLOAM's SCREW; 1 elsewhere) */
+static float hit_pitch = 1.0f;                          /* the next voice_on's own pitch factor (a drum roll's fall) */
 static uint16_t v_age;
 static float echo_time = 0.375f, echo_fb = 0.45f;       /* seconds, feedback (the apps set them) */
 #define ECHO_N 16384u                                   /* 0.37 s at 44.1 kHz */
@@ -143,6 +146,8 @@ static void voice_on(uint32_t owner, const patch_t *p, int32_t note, uint32_t ve
         v->noise = 0x2545F491u ^ (uint32_t)note;
         v->gate = 1;
     }
+    v->pm = hit_pitch;
+    hit_pitch = 1.0f;
     v->owner = (uint8_t)owner;
     v->note = (int8_t)note;
     v->vel = 0.25f + 0.75f * (float)vel * (1.0f / 127.0f);
@@ -212,12 +217,12 @@ static float osc(voice_t *v, float ph, float inc)
 static float drum_sample(voice_t *v)
 {
     float t = (float)v->t * (1.0f / SR), s = 0.0f, e, f, n;
-    float dk = v->ddec;
+    float dk = v->ddec, pm = v->pm * screw_mul;
     switch (v->drum) {
     case DR_KICK:
         e = fm_expf(-t * 7.0f / dk);
         f = 45.0f + 160.0f * fm_expf(-t * 38.0f) * (0.5f + v->dtone);
-        v->ph1 += f / SR;
+        v->ph1 += f * pm / SR;
         if (v->ph1 >= 1.0f)
             v->ph1 -= 1.0f;
         s = fm_sin_pi(v->ph1 * 2.0f - 1.0f) * e * 1.3f;
@@ -228,7 +233,7 @@ static float drum_sample(voice_t *v)
     case DR_TOM:
         e = fm_expf(-t * 9.0f / dk);
         f = v->dpitch * (1.0f + 0.6f * fm_expf(-t * 30.0f));
-        v->ph1 += f / SR;
+        v->ph1 += f * pm / SR;
         if (v->ph1 >= 1.0f)
             v->ph1 -= 1.0f;
         s = fm_sin_pi(v->ph1 * 2.0f - 1.0f) * e;
@@ -240,7 +245,7 @@ static float drum_sample(voice_t *v)
         n = nz(&v->noise);
         v->bp += 0.35f * (n - v->bp);                   /* a gentle low-pass on the rattle */
         f = v->drum == DR_RIM ? 820.0f : 185.0f + 60.0f * v->dtone;
-        v->ph1 += f / SR;
+        v->ph1 += f * pm / SR;
         if (v->ph1 >= 1.0f)
             v->ph1 -= 1.0f;
         if (v->drum == DR_RIM) {
@@ -272,8 +277,8 @@ static float drum_sample(voice_t *v)
         float dec = v->drum == DR_CHAT ? 60.0f : v->drum == DR_SHAKE ? 30.0f : v->drum == DR_OHAT ? 7.0f : 3.0f;
         n = nz(&v->noise);
         if (v->drum == DR_CYMB) {                       /* square partials for the metal */
-            v->ph1 += 540.0f / SR;
-            v->ph2 += 800.0f / SR;
+            v->ph1 += 540.0f * pm / SR;
+            v->ph2 += 800.0f * pm / SR;
             if (v->ph1 >= 1.0f)
                 v->ph1 -= 1.0f;
             if (v->ph2 >= 1.0f)
@@ -287,8 +292,8 @@ static float drum_sample(voice_t *v)
         break;
     }
     case DR_COWB:
-        v->ph1 += 560.0f / SR;
-        v->ph2 += 845.0f / SR;
+        v->ph1 += 560.0f * pm / SR;
+        v->ph2 += 845.0f * pm / SR;
         if (v->ph1 >= 1.0f)
             v->ph1 -= 1.0f;
         if (v->ph2 >= 1.0f)
@@ -301,7 +306,7 @@ static float drum_sample(voice_t *v)
         break;
     default:                                            /* the zap: a falling sine */
         f = 2400.0f * fm_expf(-t * 40.0f) + 80.0f;
-        v->ph1 += f / SR;
+        v->ph1 += f * pm / SR;
         if (v->ph1 >= 1.0f)
             v->ph1 -= 1.0f;
         s = fm_sin_pi(v->ph1 * 2.0f - 1.0f) * fm_expf(-t * 12.0f / dk);
@@ -339,12 +344,15 @@ static float voice_sample(voice_t *v)
         break;
     }
     v->inc1 += (v->inc_target - v->inc1) * v->glide_k;
-    v->ph1 += v->inc1;
-    if (v->ph1 >= 1.0f)
-        v->ph1 -= 1.0f;
-    s = osc(v, v->ph1, v->inc1);
+    {
+        float inc = v->inc1 * screw_mul;
+        v->ph1 += inc;
+        if (v->ph1 >= 1.0f)
+            v->ph1 -= 1.0f;
+        s = osc(v, v->ph1, inc);
+    }
     if (v->wave != WV_NOISE && v->wave != WV_SINE) {   /* the second oscillator, detuned */
-        float i2 = v->inc1 * v->inc2;
+        float i2 = v->inc1 * screw_mul * v->inc2;
         v->ph2 += i2;
         if (v->ph2 >= 1.0f)
             v->ph2 -= 1.0f;
